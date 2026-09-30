@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bank Statement Converter</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main>
+    <h1>Bank Statement Converter</h1>
+    <p>Upload a PDF bank statement, preview transactions, export to CSV or Excel.</p>
+
+    <form id="upload-form">
+      <input type="file" id="file" name="file" accept="application/pdf" required>
+      <button type="submit">Convert</button>
+    </form>
+
+    <div id="status"></div>
+
+    <div id="results" hidden>
+      <h2>Preview</h2>
+      <table id="preview">
+        <thead>
+          <tr><th>Date</th><th>Description</th><th>Amount</th><th>Balance</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <div class="exports">
+        <a href="/export/csv" class="btn">Download CSV</a>
+        <a href="/export/xlsx" class="btn">Download Excel</a>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const form = document.getElementById('upload-form');
+    const status = document.getElementById('status');
+    const results = document.getElementById('results');
+    const tbody = document.querySelector('#preview tbody');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      status.textContent = 'Parsing…';
+      results.hidden = true;
+      tbody.innerHTML = '';
+
+      const fd = new FormData();
+      fd.append('file', document.getElementById('file').files[0]);
+
+      const res = await fetch('/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+
+      if (!res.ok) {
+        status.textContent = '❌ ' + (data.error || 'Upload failed');
+        return;
+      }
+
+      status.textContent = `✅ Found ${data.count} transactions`;
+      for (const r of data.rows) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${r.date}</td><td>${r.description}</td>
+                        <td>${r.amount}</td><td>${r.balance ?? ''}</td>`;
+        tbody.appendChild(tr);
+      }
+      results.hidden = false;
+    });
+  </script>
+</body>
+</html>
